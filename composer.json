@@ -14,5 +14,14 @@
       "name": "Mikatux",
       "email": "mickael@mayeur.eu"
     }
-  ]
+  ],
+  "config": {
+    "preferred-install": "dist",
+    "classmap-authoritative": true,
+    "optimize-autoloader": true,
+    "prepend-autoloader": false,
+    "platform": {
+      "php": "7.3"
+    }
+  }
 }

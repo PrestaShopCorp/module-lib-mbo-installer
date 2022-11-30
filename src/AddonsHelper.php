@@ -3,6 +3,7 @@
 namespace Prestashop\AddonsHelper;
 
 use PrestaShop\PrestaShop\Core\Addon\Module\ModuleManagerBuilder;
+use PrestaShop\PrestaShop\Core\Module\ModuleManager;
 use Prestashop\ModuleLibGuzzleAdapter\ClientFactory;
 use GuzzleHttp\Psr7\Request;
 
@@ -25,10 +26,16 @@ class AddonsHelper
      */
     private $db;
 
+    /**
+     * @var ModuleManager
+     */
+    protected $moduleManager;
+
     public function __construct()
     {
         $this->db = \Db::getInstance();
         $this->marketplaceClient = (new ClientFactory())->getClient(['base_uri' => self::ADDONS_URL]);
+        $this->moduleManager = ModuleManagerBuilder::getInstance()->build();
     }
 
     /**
@@ -62,6 +69,24 @@ class AddonsHelper
             ->limit($limit, $offset);
 
         return $this->db->executeS($query);
+    }
+
+
+    public function getModule($moduleName, $minVersion = null)
+    {
+        if ($this->moduleManager->isInstalled($moduleName)) {
+            if ($this->moduleManager->isEnabled($moduleName)) {
+                if ($minVersion) {
+                    $module = \Module::getInstanceByName($moduleName);
+                    if (version_compare($module->version, $minVersion, '>=')) {
+                        return $module;
+                    }
+                } else {
+                    return \Module::getInstanceByName($moduleName);
+                }
+            }
+        }
+        return null;
     }
 
     /**
@@ -120,19 +145,17 @@ class AddonsHelper
             unlink($zipPath);
         }
 
-        $moduleManager = ModuleManagerBuilder::getInstance();
-        if (!$moduleManager) {
+        if (!$this->moduleManager) {
             throw new \Exception('ModuleManagerBuilder::getInstance() failed');
             return 'no manager';
         }
-        $moduleManager = $moduleManager->build();
-        if ($moduleManager->install($moduleName)) {
+        if ($this->moduleManager->install($moduleName)) {
             return \Module::getInstanceByName($moduleName);
         }
         return 'no module';
     }
 
-    public function unzipModule($zipPath)
+    private function unzipModule($zipPath)
     {
         $zip = new ZipArchive();
         if ($zip->open($zipPath) !== true || !$zip->extractTo(_PS_MODULE_DIR_) || !$zip->close()) {
@@ -141,39 +164,14 @@ class AddonsHelper
     }
 
     /**
-     * {@inheritdoc}
-     *
-     * @throws Exception
-     */
-    public function request(string $action, array $params = [])
-    {
-
-        if ($action === 'module_download') {
-            $params['channel'] = 'stable';
-            $params['method'] = 'module';
-        }
-
-
-        try {
-            $this->marketplaceClient->sendRequest(
-                new Request('POST', '', ['query' => $params])
-            );
-            // return $this->marketplaceClient->request('POST', '', ['query' => $params])->getBody();
-        } catch (Exception $e) {
-            self::$is_addons_up = false;
-
-            throw $e;
-        }
-    }
-    /**
      * @return string
      *
      */
     public function expose()
     {
+        //TODO get BO url instead of shop url
         return [
-            'test' => \Context::getContext()->link->getModuleLink('ps_tech_vendor_boilerplate', 'Module', array('idPayment' => 1337, 'ajax' => true)),
-            'installLink' =>  \Tools::getHttpHost(true) . '/modules/' . '/',
+            'installLink' =>  \Tools::getHttpHost(true) . '/modules/addonsHelper/install/',
         ];
     }
 }
