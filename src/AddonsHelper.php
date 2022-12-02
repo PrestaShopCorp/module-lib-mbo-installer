@@ -2,6 +2,7 @@
 
 namespace Prestashop\AddonsHelper;
 
+use PrestaShop\PrestaShop\Adapter\SymfonyContainer;
 use PrestaShop\PrestaShop\Core\Addon\Module\ModuleManagerBuilder;
 use PrestaShop\PrestaShop\Core\Module\ModuleManager;
 use Prestashop\ModuleLibGuzzleAdapter\ClientFactory;
@@ -36,6 +37,10 @@ class AddonsHelper
         $this->db = \Db::getInstance();
         $this->marketplaceClient = (new ClientFactory())->getClient(['base_uri' => self::ADDONS_URL]);
         $this->moduleManager = ModuleManagerBuilder::getInstance()->build();
+
+        if (!$this->moduleManager) {
+            throw new \Exception('ModuleManagerBuilder::getInstance() failed');
+        }
     }
 
     /**
@@ -75,15 +80,15 @@ class AddonsHelper
     public function getModule($moduleName, $minVersion = null)
     {
         if ($this->moduleManager->isInstalled($moduleName)) {
-            if ($this->moduleManager->isEnabled($moduleName)) {
-                if ($minVersion) {
+            if ($minVersion) {
+                if ($this->moduleManager->isEnabled($moduleName)) {
                     $module = \Module::getInstanceByName($moduleName);
                     if (version_compare($module->version, $minVersion, '>=')) {
                         return $module;
                     }
-                } else {
-                    return \Module::getInstanceByName($moduleName);
                 }
+            } else {
+                return \Module::getInstanceByName($moduleName);
             }
         }
         return null;
@@ -133,7 +138,6 @@ class AddonsHelper
      *
      * @return string||null
      *
-     * @throws \PrestaShopDatabaseException
      */
     public function installModule($moduleName, $version = 'latest')
     {
@@ -145,11 +149,22 @@ class AddonsHelper
             unlink($zipPath);
         }
 
-        if (!$this->moduleManager) {
-            throw new \Exception('ModuleManagerBuilder::getInstance() failed');
-            return 'no manager';
-        }
         if ($this->moduleManager->install($moduleName)) {
+            return \Module::getInstanceByName($moduleName);
+        }
+        return 'no module';
+    }
+
+    /**
+     * @param string $moduleName
+     *
+     * @return string||null
+     *
+     */
+    public function enableModule($moduleName)
+    {
+
+        if ($this->moduleManager->enable($moduleName)) {
             return \Module::getInstanceByName($moduleName);
         }
         return 'no module';
@@ -169,9 +184,11 @@ class AddonsHelper
      */
     public function expose()
     {
-        //TODO get BO url instead of shop url
+        $router = SymfonyContainer::getInstance()->get('router');
         return [
-            'installLink' =>  \Tools::getHttpHost(true) . '/modules/addonsHelper/install/',
+            'getUrl' =>  \Tools::getHttpHost(true) . $router->generate('addonsHelper_getModule'),
+            'enableUrl' =>  \Tools::getHttpHost(true) . $router->generate('addonsHelper_enableModule'),
+            'installUrl' =>  \Tools::getHttpHost(true) . $router->generate('addonsHelper_installModule'),
         ];
     }
 }
