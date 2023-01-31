@@ -3,14 +3,12 @@
 namespace Prestashop\AddonsHelper\Controller\Admin;
 
 use Prestashop\AddonsHelper\AddonsHelper;
-
 use PrestaShopBundle\Controller\Admin\FrameworkBundleAdminController;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 class MyAddonsController extends FrameworkBundleAdminController
 {
-
     /**
      * @var AddonsHelper
      */
@@ -21,6 +19,7 @@ class MyAddonsController extends FrameworkBundleAdminController
         parent::__construct();
         $this->addonsHelper = new AddonsHelper();
     }
+
     /**
      * install a module
      *
@@ -28,7 +27,6 @@ class MyAddonsController extends FrameworkBundleAdminController
      */
     public function installModule(Request $request)
     {
-
         if (!is_string($request->getContent(false))) {
             throw new \PrestaShopException('Invalid request');
         }
@@ -37,7 +35,6 @@ class MyAddonsController extends FrameworkBundleAdminController
 
         $installed = $this->addonsHelper->installModule($requestBodyContent['moduleName']);
         if ($installed) {
-
             return new Response(
                 json_encode([
                     'success' => 'true',
@@ -65,7 +62,6 @@ class MyAddonsController extends FrameworkBundleAdminController
      */
     public function enableModule(Request $request)
     {
-
         if (!is_string($request->getContent(false))) {
             throw new \PrestaShopException('Invalid request');
         }
@@ -74,7 +70,6 @@ class MyAddonsController extends FrameworkBundleAdminController
 
         $installed = $this->addonsHelper->enableModule($requestBodyContent['moduleName']);
         if ($installed) {
-
             return new Response(
                 json_encode([
                     'success' => 'true',
@@ -102,16 +97,13 @@ class MyAddonsController extends FrameworkBundleAdminController
      */
     public function getModule(Request $request)
     {
-
         if (!is_string($request->getContent(false))) {
             throw new \PrestaShopException('Invalid request');
         }
         $moduleName = $request->query->get('moduleName');
 
-
         $module = $this->addonsHelper->getModule($moduleName);
         if ($module) {
-
             return new Response(
                 json_encode($module),
                 200,

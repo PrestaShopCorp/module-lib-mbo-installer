@@ -2,12 +2,10 @@
 
 namespace Prestashop\ModuleLibMboInstaller;
 
+use GuzzleHttp\Psr7\Request;
+use Prestashop\ModuleLibGuzzleAdapter\ClientFactory;
 use PrestaShop\PrestaShop\Core\Addon\Module\ModuleManagerBuilder;
 use PrestaShop\PrestaShop\Core\Module\ModuleManager;
-use Prestashop\ModuleLibGuzzleAdapter\ClientFactory;
-use GuzzleHttp\Psr7\Request;
-
-use Exception;
 
 class Installer
 {
@@ -31,7 +29,6 @@ class Installer
     protected $prestashopVersion;
 
     /**
-     *
      * @param string $prestashopVersion
      */
     public function __construct($prestashopVersion)
@@ -48,7 +45,7 @@ class Installer
     /**
      * Installs ps_mbo module
      *
-     * @return boolean
+     * @return bool
      */
     public function installModule()
     {
@@ -75,8 +72,8 @@ class Installer
             'version' => $this->prestashopVersion,
         ];
 
-        $moduleData =  $this->marketplaceClient->sendRequest(
-            new Request('POST', '/?'. http_build_query($params))
+        $moduleData = $this->marketplaceClient->sendRequest(
+            new Request('POST', '/?' . http_build_query($params))
         )->getBody()->getContents();
 
         $temporaryZipFilename = tempnam(sys_get_temp_dir(), 'mod');
@@ -84,7 +81,7 @@ class Installer
         if (file_put_contents($temporaryZipFilename, $moduleData) !== false) {
             return $temporaryZipFilename;
         } else {
-            throw new Exception('Cannot store module content in temporary file !');
+            throw new \Exception('Cannot store module content in temporary file !');
         }
     }
 }

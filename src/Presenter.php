@@ -2,16 +2,14 @@
 
 namespace Prestashop\ModuleLibMboInstaller;
 
-use Module;
-
 class Presenter
 {
     public function present()
     {
         /**
-         * @var Module|null
+         * @var \Module|null
          */
-        $mboModule = Module::getInstanceByName(Installer::MODULE_NAME);
+        $mboModule = \Module::getInstanceByName(Installer::MODULE_NAME);
 
         $version = null;
         if ($mboModule) {
@@ -19,9 +17,9 @@ class Presenter
         }
 
         return [
-            'isPresentOnDisk' => !!$mboModule,
-            'isInstalled' => ($mboModule && Module::isInstalled(Installer::MODULE_NAME)),
-            'isEnabled' => ($mboModule && Module::isEnabled(Installer::MODULE_NAME)),
+            'isPresentOnDisk' => (bool) $mboModule,
+            'isInstalled' => ($mboModule && \Module::isInstalled(Installer::MODULE_NAME)),
+            'isEnabled' => ($mboModule && \Module::isEnabled(Installer::MODULE_NAME)),
             'version' => $version,
         ];
     }
