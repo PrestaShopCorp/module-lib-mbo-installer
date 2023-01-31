@@ -1,27 +1,24 @@
 {
-  "name": "prestashop/addons_helper",
-  "type": "library",
+  "name": "prestashop/module-lib-mbo-installer",
+  "description": "A helper to ease the download PS MBO from the Addons Marketplace",
+  "license": "AFL-3.0",
   "require": {
-    "prestashop/module-lib-guzzle-adapter": "^0.5.0"
+    "php": ">=5.6",
+    "prestashop/module-lib-guzzle-adapter": "^0.6"
   },
   "autoload": {
     "psr-4": {
-      "Prestashop\\AddonsHelper\\": "src/"
+      "Prestashop\\ModuleLibMboInstaller\\": "src/"
     }
   },
   "authors": [
     {
+      "name": "PrestaShop SA",
+      "email": "contact@prestashop.com"
+    },
+    {
       "name": "Mikatux",
       "email": "mickael@mayeur.eu"
     }
-  ],
-  "config": {
-    "preferred-install": "dist",
-    "classmap-authoritative": true,
-    "optimize-autoloader": true,
-    "prepend-autoloader": false,
-    "platform": {
-      "php": "7.3"
-    }
-  }
+  ]
 }
