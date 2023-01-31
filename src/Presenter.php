@@ -4,6 +4,9 @@ namespace Prestashop\ModuleLibMboInstaller;
 
 class Presenter
 {
+    /**
+     * @return array<string, string|boolean|null>
+     */
     public function present()
     {
         /**

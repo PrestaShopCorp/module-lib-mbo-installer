@@ -1,0 +1,13 @@
+includes:
+  - %currentWorkingDirectory%/vendor/prestashop/php-dev-tools/phpstan/ps-module-extension.neon
+
+parameters:
+	paths:
+		- src
+	bootstrapFiles:
+		- vendor/autoload.php
+	reportUnmatchedIgnoredErrors: false
+	ignoreErrors:
+		- "#Negated boolean expression is always false.#"
+
+	level: max

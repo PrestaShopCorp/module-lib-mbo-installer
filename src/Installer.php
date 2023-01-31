@@ -4,6 +4,7 @@ namespace Prestashop\ModuleLibMboInstaller;
 
 use GuzzleHttp\Psr7\Request;
 use Prestashop\ModuleLibGuzzleAdapter\ClientFactory;
+use Prestashop\ModuleLibGuzzleAdapter\Interfaces\HttpClientInterface;
 use PrestaShop\PrestaShop\Core\Addon\Module\ModuleManagerBuilder;
 use PrestaShop\PrestaShop\Core\Module\ModuleManager;
 
@@ -14,7 +15,7 @@ class Installer
     public const MODULE_NAME = 'ps_mbo';
 
     /**
-     * @var ApiClient
+     * @var HttpClientInterface
      */
     protected $marketplaceClient;
 
@@ -33,8 +34,13 @@ class Installer
      */
     public function __construct($prestashopVersion)
     {
+        $moduleManagerBuilder = ModuleManagerBuilder::getInstance();
+        if (!$moduleManagerBuilder) {
+            throw new \Exception('ModuleManagerBuilder::getInstance() failed');
+        }
+
         $this->marketplaceClient = (new ClientFactory())->getClient(['base_uri' => self::ADDONS_URL]);
-        $this->moduleManager = ModuleManagerBuilder::getInstance()->build();
+        $this->moduleManager = $moduleManagerBuilder->build();
         $this->prestashopVersion = $prestashopVersion;
 
         if (!$this->moduleManager) {
@@ -51,7 +57,7 @@ class Installer
     {
         // On PrestaShop 1.7, the signature is install($source), with $source a module name or a path to an archive.
         // On PrestaShop 8, the signature is install(string $name, $source = null).
-        if (version_compare($this->prestashopVersion, 8, '>=')) {
+        if (version_compare($this->prestashopVersion, '8.0.0', '>=')) {
             return $this->moduleManager->install(self::MODULE_NAME, $this->downloadModule());
         }
 
@@ -77,6 +83,9 @@ class Installer
         )->getBody()->getContents();
 
         $temporaryZipFilename = tempnam(sys_get_temp_dir(), 'mod');
+        if ($temporaryZipFilename === false) {
+            throw new \Exception('Cannot create temporary file in ' . sys_get_temp_dir());
+        }
 
         if (file_put_contents($temporaryZipFilename, $moduleData) !== false) {
             return $temporaryZipFilename;
