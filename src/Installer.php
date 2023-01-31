@@ -76,7 +76,7 @@ class Installer
         ];
 
         $moduleData =  $this->marketplaceClient->sendRequest(
-            new Request('POST', '/'. http_build_query($params))
+            new Request('POST', '/?'. http_build_query($params))
         )->getBody()->getContents();
 
         $temporaryZipFilename = tempnam(sys_get_temp_dir(), 'mod');

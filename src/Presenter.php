@@ -11,7 +11,7 @@ class Presenter
         /**
          * @var Module|null
          */
-        $mboModule = Module::getInstanceByName(AddonsHelper::MODULE_NAME);
+        $mboModule = Module::getInstanceByName(Installer::MODULE_NAME);
 
         $version = null;
         if ($mboModule) {
@@ -20,8 +20,8 @@ class Presenter
 
         return [
             'isPresentOnDisk' => !!$mboModule,
-            'isInstalled' => ($mboModule && Module::isInstalled(AddonsHelper::MODULE_NAME)),
-            'isEnabled' => ($mboModule && Module::isEnabled(AddonsHelper::MODULE_NAME)),
+            'isInstalled' => ($mboModule && Module::isInstalled(Installer::MODULE_NAME)),
+            'isEnabled' => ($mboModule && Module::isEnabled(Installer::MODULE_NAME)),
             'version' => $version,
         ];
     }
