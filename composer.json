@@ -6,6 +6,11 @@
     "php": ">=5.6",
     "prestashop/module-lib-guzzle-adapter": "^0.6"
   },
+  "config": {
+    "platform": {
+      "php": "7.4.33"
+    }
+  },
   "autoload": {
     "psr-4": {
       "Prestashop\\ModuleLibMboInstaller\\": "src/"

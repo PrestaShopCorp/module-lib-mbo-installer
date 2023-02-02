@@ -10,9 +10,9 @@ use PrestaShop\PrestaShop\Core\Module\ModuleManager;
 
 class Installer
 {
-    public const ADDONS_URL = 'https://api-addons.prestashop.com';
-    public const MODULE_ID = 39574;
-    public const MODULE_NAME = 'ps_mbo';
+    const ADDONS_URL = 'https://api-addons.prestashop.com';
+    const MODULE_ID = 39574;
+    const MODULE_NAME = 'ps_mbo';
 
     /**
      * @var HttpClientInterface
