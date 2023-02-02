@@ -10,6 +10,8 @@ jobs:
 
       - name: PHP syntax checker 5.6
         uses: prestashop/github-action-php-lint/5.6@master
+        with:
+          folder-to-exclude: "! -path \"./tests/*\""
 
       - name: PHP syntax checker 7.2
         uses: prestashop/github-action-php-lint/7.2@master
@@ -86,3 +88,31 @@ jobs:
         env:
           _PS_ROOT_DIR_: /tmp/prestashop
         run: vendor/bin/phpstan
+
+  phpunit:
+    name: PHPUnit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Cache vendor folder
+        uses: actions/cache@v3
+        with:
+          path: vendor
+          key: php-${{ hashFiles('composer.lock') }}
+
+      - name: Cache composer folder
+        uses: actions/cache@v3
+        with:
+          path: ~/.composer/cache
+          key: php-composer-cache
+
+      - name: Install dependencies
+        run: composer install
+
+      - name: PHPUnit tests 1.7
+        run: DOCKER_INTERNAL="1.7" make phpunit
+
+      - name: PHPUnit tests with PS 8
+        run: DOCKER_INTERNAL=8 make phpunit

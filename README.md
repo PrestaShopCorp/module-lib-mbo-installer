@@ -30,6 +30,19 @@ This example would be called from your module.
 $mboStatus = (new Prestashop\ModuleLibMboInstaller\Presenter)->present();
 
 var_dump($mboStatus);
+/*
+Example output:
+array(4) {
+  ["isPresentOnDisk"]=>
+  bool(false)
+  ["isInstalled"]=>
+  bool(false)
+  ["isEnabled"]=>
+  bool(false)
+  ["version"]=>
+  NULL
+}
+/*
 ```
 
 ### Trigger download and installation of MBO
