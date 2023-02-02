@@ -6,7 +6,6 @@ use GuzzleHttp\Psr7\Request;
 use Prestashop\ModuleLibGuzzleAdapter\ClientFactory;
 use Prestashop\ModuleLibGuzzleAdapter\Interfaces\HttpClientInterface;
 use PrestaShop\PrestaShop\Core\Addon\Module\ModuleManagerBuilder;
-use PrestaShop\PrestaShop\Core\Module\ModuleManager;
 
 class Installer
 {
@@ -20,9 +19,9 @@ class Installer
     protected $marketplaceClient;
 
     /**
-     * @var ModuleManager
+     * @var ModuleManagerBuilder
      */
-    protected $moduleManager;
+    protected $moduleManagerBuilder;
 
     /**
      * @var string
@@ -35,17 +34,13 @@ class Installer
     public function __construct($prestashopVersion)
     {
         $moduleManagerBuilder = ModuleManagerBuilder::getInstance();
-        if (!$moduleManagerBuilder) {
+        if (is_null($moduleManagerBuilder)) {
             throw new \Exception('ModuleManagerBuilder::getInstance() failed');
         }
 
         $this->marketplaceClient = (new ClientFactory())->getClient(['base_uri' => self::ADDONS_URL]);
-        $this->moduleManager = $moduleManagerBuilder->build();
+        $this->moduleManagerBuilder = $moduleManagerBuilder;
         $this->prestashopVersion = $prestashopVersion;
-
-        if (!$this->moduleManager) {
-            throw new \Exception('ModuleManagerBuilder::getInstance() failed');
-        }
     }
 
     /**
@@ -58,10 +53,10 @@ class Installer
         // On PrestaShop 1.7, the signature is install($source), with $source a module name or a path to an archive.
         // On PrestaShop 8, the signature is install(string $name, $source = null).
         if (version_compare($this->prestashopVersion, '8.0.0', '>=')) {
-            return $this->moduleManager->install(self::MODULE_NAME, $this->downloadModule());
+            return $this->moduleManagerBuilder->build()->install(self::MODULE_NAME, $this->downloadModule());
         }
 
-        return $this->moduleManager->install(self::MODULE_NAME);
+        return $this->moduleManagerBuilder->build()->install(self::MODULE_NAME);
     }
 
     /**

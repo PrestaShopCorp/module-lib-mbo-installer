@@ -8,6 +8,6 @@ parameters:
 		- vendor/autoload.php
 	reportUnmatchedIgnoredErrors: false
 	ignoreErrors:
-		- "#Negated boolean expression is always false.#"
+		- '#Method PrestaShop\\PrestaShop\\Core\\Addon\\Module\\ModuleManager::install\(\) invoked with 2 parameters, 1 required.#'
 
 	level: max
