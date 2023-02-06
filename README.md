@@ -30,6 +30,7 @@ This example would be called from your module.
 $mboStatus = (new Prestashop\ModuleLibMboInstaller\Presenter)->present();
 
 var_dump($mboStatus);
+
 /*
 Example output:
 array(4) {
@@ -42,7 +43,7 @@ array(4) {
   ["version"]=>
   NULL
 }
-/*
+*/
 ```
 
 ### Trigger download and installation of MBO
