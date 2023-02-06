@@ -8,7 +8,7 @@ For extensions requiring other modules available on the marketplace on PrestaSho
 ## Installation
 
 ```
-composer require prestashop/module-lib-mbo-adapter
+composer require prestashop/module-lib-mbo-installer
 ```
 
 ## Version Guidance
