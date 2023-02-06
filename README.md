@@ -15,7 +15,7 @@ composer require prestashop/module-lib-mbo-adapter
 
 | Version | Status         | Packagist           -| Namespace    | Repo                | Docs                | PHP Version  |
 |---------|----------------|----------------------|--------------|---------------------|---------------------|--------------|
-| 1.x     | Latest         | `prestashop/module-lib-mbo-adapter` | `Prestashop\ModuleLibMboInstaller` | [v1.x][lib-1-repo] | N/A                 | >=5.6   |
+| 1.x     | Latest         | `prestashop/module-lib-mbo-installer` | `Prestashop\ModuleLibMboInstaller` | [v1.x][lib-1-repo] | N/A                 | >=5.6   |
 
 [lib-1-repo]: https://github.com/PrestaShopCorp/module-lib-mbo-installer/tree/main
 
