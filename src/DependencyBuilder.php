@@ -2,6 +2,8 @@
 
 namespace Prestashop\ModuleLibMboInstaller;
 
+use Symfony\Component\Routing\Router;
+
 class DependencyBuilder
 {
     const DEPENDENCY_FILENAME = 'ps_dependencies.json';
@@ -12,11 +14,19 @@ class DependencyBuilder
     protected $module;
 
     /**
+     * @var Router
+     */
+    protected $router;
+
+    /**
      * @param \ModuleCore $module
+     *
+     * @throws \Exception
      */
     public function __construct($module)
     {
         $this->module = $module;
+        $this->buildRouter();
     }
 
     /**
@@ -36,6 +46,8 @@ class DependencyBuilder
      *          "enabled"?: bool
      *      }>
      * }
+     *
+     * @throws \Exception
      */
     public function buildDependencies()
     {
@@ -77,21 +89,61 @@ class DependencyBuilder
 
         foreach ($dependenciesContent['dependencies'] as $dependencyName => $dependencyMinVersion) {
             $dependencyData = \DbCore::getInstance()->getRow('SELECT `id_module`, `active`, `version` FROM `' . _DB_PREFIX_ . 'module` WHERE `name` = "' . pSQL((string) $dependencyName) . '"');
+
+            $data['dependencies'][$dependencyName] = array_merge(['min_version' => (string) $dependencyMinVersion], $this->buildRoutesForModule($dependencyName));
             if (!$dependencyData) {
-                $data['dependencies'][$dependencyName] = [
-                    'min_version' => (string) $dependencyMinVersion,
-                    'installed' => false,
-                ];
+                $data['dependencies'][$dependencyName]['installed'] = false;
                 continue;
             }
-            $data['dependencies'][$dependencyName] = [
-                'min_version' => (string) $dependencyMinVersion,
+            $data['dependencies'][$dependencyName] = array_merge($data['dependencies'][$dependencyName], [
                 'installed' => true,
                 'enabled' => isset($dependencyData['active']) && (bool) $dependencyData['active'],
                 'current_version' => isset($dependencyData['version']) ? $dependencyData['version'] : null,
-            ];
+            ]);
         }
 
         return $data;
+    }
+
+    /**
+     * @param string $moduleName
+     *
+     * @return array<string, string>
+     */
+    protected function buildRoutesForModule($moduleName)
+    {
+        $urls = [];
+        foreach (['install', 'enable', 'upgrade'] as $action) {
+            $urls[$action] = $this->router->generate('admin_module_manage_action', [
+                'action' => $action,
+                'module_name' => $moduleName,
+            ]);
+        }
+
+        return $urls;
+    }
+
+    /**
+     * @return void
+     *
+     * @throws \Exception
+     */
+    protected function buildRouter()
+    {
+        global $kernel;
+        if (!$kernel instanceof \AppKernel) {
+            throw new \Exception('Unable to retrieve Symfony AppKernel.');
+        }
+
+        $container = $kernel->getContainer();
+        if (!$container instanceof \Symfony\Component\DependencyInjection\ContainerInterface) {
+            throw new \Exception('Unable to retrieve Symfony ContainerInterface.');
+        }
+
+        $router = $container->get('router');
+        if (!$router instanceof Router) {
+            throw new \Exception('Unable to retrieve Symfony Router.');
+        }
+        $this->router = $router;
     }
 }
