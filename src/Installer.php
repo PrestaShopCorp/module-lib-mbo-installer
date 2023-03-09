@@ -81,6 +81,18 @@ class Installer
     }
 
     /**
+     * Enable ps_mbo module
+     *
+     * @return bool
+     *
+     * @throws \Exception
+     */
+    public function enableModule()
+    {
+        return $this->moduleManagerBuilder->build()->enable(self::MODULE_NAME);
+    }
+
+    /**
      * Downloads ps_mbo module source from addons, store it and returns the file name
      *
      * @return string
