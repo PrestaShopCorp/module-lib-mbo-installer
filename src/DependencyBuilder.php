@@ -2,11 +2,18 @@
 
 namespace Prestashop\ModuleLibMboInstaller;
 
+use Prestashop\ModuleLibGuzzleAdapter\Interfaces\ClientExceptionInterface;
 use Symfony\Component\Routing\Router;
 
 class DependencyBuilder
 {
     const DEPENDENCY_FILENAME = 'ps_dependencies.json';
+    const GET_PARAMETER = 'mbo_action_needed';
+    const INSTALL_ACTION = 'install';
+    const ENABLE_ACTION = 'enable';
+    const APP_STATE_LAUNCHABLE = 'launchable';
+    const APP_STATE_MBO_IN_PROGRESS = 'mbo_in_progress';
+    const APP_STATE_AUTOSTART = 'autostart';
 
     /**
      * @var \ModuleCore
@@ -30,7 +37,7 @@ class DependencyBuilder
     }
 
     /**
-     * Build the dependencies data array to be given to the CDC
+     * Handle dependencies behavior and return dependencies data array to be given to the CDC
      *
      * @return array{
      *     "module_display_name": string,
@@ -39,17 +46,70 @@ class DependencyBuilder
      *     "ps_version": string,
      *     "php_version": string,
      *     "locale": string,
-     *     "dependencies": array<array{
-     *          "min_version"?: string,
-     *          "current_version"?: string,
-     *          "installed"?: bool,
-     *          "enabled"?: bool
-     *      }>
+     *     "app_state": string,
+     *     "dependencies": array{}|array{ps_mbo: array<string, bool|string>}
+     * }
+     *
+     * @throws \Exception|ClientExceptionInterface
+     */
+    public function handleDependencies()
+    {
+        $appState = $this->handleMboInstallation();
+
+        return $this->buildDependenciesContext($appState);
+    }
+
+    /**
+     * Install or enable the MBO depending on the action requested
+     *
+     * @return string
+     *
+     * @throws \Exception|ClientExceptionInterface
+     */
+    protected function handleMboInstallation()
+    {
+        if (!isset($_GET[self::GET_PARAMETER])) {
+            return self::APP_STATE_LAUNCHABLE;
+        }
+
+        $mboStatus = (new Presenter())->present();
+        $installer = new Installer(_PS_VERSION_);
+
+        if ($mboStatus['isInstalled'] && $mboStatus['isEnabled']) {
+            return self::APP_STATE_AUTOSTART;
+        }
+
+        if (!$mboStatus['isInstalled']) {
+            $installer->installModule();
+        } elseif (!$mboStatus['isEnabled']) {
+            $installer->enableModule();
+        }
+
+        // Force another refresh of the page to correctly clear the cache and load MBO configurations
+        header('Refresh:0');
+        // To avoid wasting time rerendering the entire page, die immediately
+        return self::APP_STATE_MBO_IN_PROGRESS;
+    }
+
+    /**
+     * Build the dependencies data array to be given to the CDC
+     *
+     * @param string $appState
+     *
+     * @return array{
+     *     "module_display_name": string,
+     *     "module_name": string,
+     *     "module_version": string,
+     *     "ps_version": string,
+     *     "php_version": string,
+     *     "locale": string,
+     *     "app_state": string,
+     *     "dependencies": array{}|array{ps_mbo: array<string, bool|string>}
      * }
      *
      * @throws \Exception
      */
-    public function buildDependencies()
+    protected function buildDependenciesContext($appState = self::APP_STATE_LAUNCHABLE)
     {
         $data = [
             'module_display_name' => (string) $this->module->displayName,
@@ -57,6 +117,7 @@ class DependencyBuilder
             'module_version' => (string) $this->module->version,
             'ps_version' => (string) _PS_VERSION_,
             'php_version' => (string) PHP_VERSION,
+            'app_state' => $appState,
             'dependencies' => [],
         ];
 
@@ -84,13 +145,23 @@ class DependencyBuilder
         }
 
         if (!is_array($dependenciesContent) || empty($dependenciesContent['dependencies']) || !is_array($dependenciesContent['dependencies'])) {
+            $mboDependencyData = $this->addMboInDependencies();
+
+            if ($mboDependencyData) {
+                $data['dependencies'][Installer::MODULE_NAME] = $mboDependencyData;
+            }
+
             return $data;
         }
 
-        foreach ($dependenciesContent['dependencies'] as $dependencyName => $dependencyMinVersion) {
+        if (!isset($dependenciesContent['dependencies'][Installer::MODULE_NAME])) {
+            $dependenciesContent['dependencies'][] = Installer::MODULE_NAME;
+        }
+
+        foreach ($dependenciesContent['dependencies'] as $dependencyName) {
             $dependencyData = \DbCore::getInstance()->getRow('SELECT `id_module`, `active`, `version` FROM `' . _DB_PREFIX_ . 'module` WHERE `name` = "' . pSQL((string) $dependencyName) . '"');
 
-            $data['dependencies'][$dependencyName] = array_merge(['min_version' => (string) $dependencyMinVersion], $this->buildRoutesForModule($dependencyName));
+            $data['dependencies'][$dependencyName] = $this->buildRoutesForModule($dependencyName);
             if (!$dependencyData) {
                 $data['dependencies'][$dependencyName]['installed'] = false;
                 continue;
@@ -137,13 +208,33 @@ class DependencyBuilder
 
         $container = $kernel->getContainer();
         if (!$container instanceof \Symfony\Component\DependencyInjection\ContainerInterface) {
-            throw new \Exception('Unable to retrieve Symfony ContainerInterface.');
+            throw new \Exception('Unable to retrieve Symfony container.');
         }
 
         $router = $container->get('router');
         if (!$router instanceof Router) {
-            throw new \Exception('Unable to retrieve Symfony Router.');
+            throw new \Exception('Unable to retrieve Symfony router.');
         }
         $this->router = $router;
+    }
+
+    /**
+     * @return array<string,bool|string>|null
+     */
+    protected function addMboInDependencies()
+    {
+        $mboStatus = (new Presenter())->present();
+
+        if ((bool) $mboStatus['isEnabled']) {
+            return null;
+        }
+
+        $mboRoutes = $this->buildRoutesForModule(Installer::MODULE_NAME);
+
+        return array_merge([
+            'current_version' => (string) $mboStatus['version'],
+            'installed' => (bool) $mboStatus['isInstalled'],
+            'enabled' => false,
+        ], $mboRoutes);
     }
 }

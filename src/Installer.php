@@ -4,6 +4,7 @@ namespace Prestashop\ModuleLibMboInstaller;
 
 use GuzzleHttp\Psr7\Request;
 use Prestashop\ModuleLibGuzzleAdapter\ClientFactory;
+use Prestashop\ModuleLibGuzzleAdapter\Interfaces\ClientExceptionInterface;
 use Prestashop\ModuleLibGuzzleAdapter\Interfaces\HttpClientInterface;
 use PrestaShop\PrestaShop\Core\Addon\Module\ModuleManagerBuilder;
 
@@ -30,6 +31,8 @@ class Installer
 
     /**
      * @param string $prestashopVersion
+     *
+     * @throws \Exception
      */
     public function __construct($prestashopVersion)
     {
@@ -47,6 +50,8 @@ class Installer
      * Installs ps_mbo module
      *
      * @return bool
+     *
+     * @throws ClientExceptionInterface
      */
     public function installModule()
     {
@@ -60,9 +65,23 @@ class Installer
     }
 
     /**
+     * Enable ps_mbo module
+     *
+     * @return bool
+     *
+     * @throws \Exception
+     */
+    public function enableModule()
+    {
+        return $this->moduleManagerBuilder->build()->enable(self::MODULE_NAME);
+    }
+
+    /**
      * Downloads ps_mbo module source from addons, store it and returns the file name
      *
      * @return string
+     *
+     * @throws \Exception|ClientExceptionInterface
      */
     private function downloadModule()
     {
