@@ -2,18 +2,12 @@
 
 namespace Prestashop\ModuleLibMboInstaller;
 
-use Prestashop\ModuleLibGuzzleAdapter\Interfaces\ClientExceptionInterface;
 use Symfony\Component\Routing\Router;
 
 class DependencyBuilder
 {
     const DEPENDENCY_FILENAME = 'ps_dependencies.json';
     const GET_PARAMETER = 'mbo_action_needed';
-    const INSTALL_ACTION = 'install';
-    const ENABLE_ACTION = 'enable';
-    const APP_STATE_LAUNCHABLE = 'launchable';
-    const APP_STATE_MBO_IN_PROGRESS = 'mbo_in_progress';
-    const APP_STATE_AUTOSTART = 'autostart';
 
     /**
      * @var \ModuleCore
@@ -46,55 +40,61 @@ class DependencyBuilder
      *     "ps_version": string,
      *     "php_version": string,
      *     "locale": string,
-     *     "app_state": string,
      *     "dependencies": array{}|array{ps_mbo: array<string, bool|string>}
      * }
      *
-     * @throws \Exception|ClientExceptionInterface
+     * @throws \Exception
      */
     public function handleDependencies()
     {
-        $appState = $this->handleMboInstallation();
+        $this->handleMboInstallation();
 
-        return $this->buildDependenciesContext($appState);
+        return $this->buildDependenciesContext();
     }
 
     /**
      * Install or enable the MBO depending on the action requested
      *
-     * @return string
-     *
-     * @throws \Exception|ClientExceptionInterface
+     * @return void
      */
     protected function handleMboInstallation()
     {
         if (!isset($_GET[self::GET_PARAMETER]) || !$this->isMboNeeded()) {
-            return self::APP_STATE_LAUNCHABLE;
+            return;
         }
 
         $mboStatus = (new Presenter())->present();
         $installer = new Installer(_PS_VERSION_);
 
         if ($mboStatus['isInstalled'] && $mboStatus['isEnabled']) {
-            return self::APP_STATE_AUTOSTART;
+            return;
         }
 
-        if (!$mboStatus['isInstalled']) {
-            $installer->installModule();
-        } elseif (!$mboStatus['isEnabled']) {
-            $installer->enableModule();
+        $data = [Installer::MODULE_NAME => [
+            'status' => true,
+        ]];
+
+        try {
+            if (!$mboStatus['isInstalled']) {
+                $installer->installModule();
+            } elseif (!$mboStatus['isEnabled']) {
+                $installer->enableModule();
+            }
+        } catch (\Exception $e) {
+            $data[Installer::MODULE_NAME] = [
+                'status' => false,
+                'msg' => $e->getMessage(),
+            ];
         }
 
-        // Force another refresh of the page to correctly clear the cache and load MBO configurations
-        header('Refresh:0');
-        // To avoid wasting time rerendering the entire page, die immediately
-        return self::APP_STATE_MBO_IN_PROGRESS;
+        // This call is done in ajax by the CDC, bypass the normal return
+        header('Content-type: application/json');
+        echo json_encode($data);
+        exit;
     }
 
     /**
      * Build the dependencies data array to be given to the CDC
-     *
-     * @param string $appState
      *
      * @return array{
      *     "module_display_name": string,
@@ -103,13 +103,12 @@ class DependencyBuilder
      *     "ps_version": string,
      *     "php_version": string,
      *     "locale": string,
-     *     "app_state": string,
      *     "dependencies": array{}|array{ps_mbo: array<string, bool|string>}
      * }
      *
      * @throws \Exception
      */
-    protected function buildDependenciesContext($appState = self::APP_STATE_LAUNCHABLE)
+    protected function buildDependenciesContext()
     {
         $data = [
             'module_display_name' => (string) $this->module->displayName,
@@ -117,7 +116,6 @@ class DependencyBuilder
             'module_version' => (string) $this->module->version,
             'ps_version' => (string) _PS_VERSION_,
             'php_version' => (string) PHP_VERSION,
-            'app_state' => $appState,
             'dependencies' => [],
         ];
 
