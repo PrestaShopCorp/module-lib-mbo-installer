@@ -68,7 +68,7 @@ class DependencyBuilder
      */
     protected function handleMboInstallation()
     {
-        if (!isset($_GET[self::GET_PARAMETER])) {
+        if (!isset($_GET[self::GET_PARAMETER]) || !$this->isMboNeeded()) {
             return self::APP_STATE_LAUNCHABLE;
         }
 
@@ -154,7 +154,7 @@ class DependencyBuilder
             return $data;
         }
 
-        if (!isset($dependenciesContent['dependencies'][Installer::MODULE_NAME])) {
+        if ($this->isMboNeeded() && !isset($dependenciesContent['dependencies'][Installer::MODULE_NAME])) {
             $dependenciesContent['dependencies'][] = Installer::MODULE_NAME;
         }
 
@@ -223,6 +223,10 @@ class DependencyBuilder
      */
     protected function addMboInDependencies()
     {
+        if (!$this->isMboNeeded()) {
+            return null;
+        }
+
         $mboStatus = (new Presenter())->present();
 
         if ((bool) $mboStatus['isEnabled']) {
@@ -236,5 +240,13 @@ class DependencyBuilder
             'installed' => (bool) $mboStatus['isInstalled'],
             'enabled' => false,
         ], $mboRoutes);
+    }
+
+    /**
+     * @return bool
+     */
+    protected function isMboNeeded()
+    {
+        return version_compare(_PS_VERSION_, '1.7.5', '>=');
     }
 }
