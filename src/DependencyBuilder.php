@@ -40,7 +40,7 @@ class DependencyBuilder
      *     "ps_version": string,
      *     "php_version": string,
      *     "locale": string,
-     *     "dependencies": array{}|array{ps_mbo: array<string, bool|string>}
+     *     "dependencies": array{}|array{ps_mbo: array<string, bool|string|int>}
      * }
      *
      * @throws \Exception
@@ -103,7 +103,7 @@ class DependencyBuilder
      *     "ps_version": string,
      *     "php_version": string,
      *     "locale": string,
-     *     "dependencies": array{}|array{ps_mbo: array<string, bool|string>}
+     *     "dependencies": array{}|array{ps_mbo: array<string, bool|string|int>}
      * }
      *
      * @throws \Exception
@@ -153,18 +153,21 @@ class DependencyBuilder
         }
 
         if ($this->isMboNeeded() && !isset($dependenciesContent['dependencies'][Installer::MODULE_NAME])) {
-            $dependenciesContent['dependencies'][] = Installer::MODULE_NAME;
+            $dependenciesContent['dependencies'][] = [
+                'name' => Installer::MODULE_NAME,
+                'id' => Installer::MODULE_ID,
+            ];
         }
 
-        foreach ($dependenciesContent['dependencies'] as $dependencyName) {
-            $dependencyData = \DbCore::getInstance()->getRow('SELECT `id_module`, `active`, `version` FROM `' . _DB_PREFIX_ . 'module` WHERE `name` = "' . pSQL((string) $dependencyName) . '"');
+        foreach ($dependenciesContent['dependencies'] as $dependency) {
+            $dependencyData = \DbCore::getInstance()->getRow('SELECT `id_module`, `active`, `version` FROM `' . _DB_PREFIX_ . 'module` WHERE `name` = "' . pSQL((string) $dependency['name']) . '"');
 
-            $data['dependencies'][$dependencyName] = $this->buildRoutesForModule($dependencyName);
+            $data['dependencies'][$dependency['name']] = array_merge($dependency, $this->buildRoutesForModule($dependency['name']));
             if (!$dependencyData) {
-                $data['dependencies'][$dependencyName]['installed'] = false;
+                $data['dependencies'][$dependency['name']]['installed'] = false;
                 continue;
             }
-            $data['dependencies'][$dependencyName] = array_merge($data['dependencies'][$dependencyName], [
+            $data['dependencies'][$dependency['name']] = array_merge($data['dependencies'][$dependency['name']], [
                 'installed' => true,
                 'enabled' => isset($dependencyData['active']) && (bool) $dependencyData['active'],
                 'current_version' => isset($dependencyData['version']) ? $dependencyData['version'] : null,
@@ -217,7 +220,7 @@ class DependencyBuilder
     }
 
     /**
-     * @return array<string,bool|string>|null
+     * @return array<string,bool|string|int>|null
      */
     protected function addMboInDependencies()
     {
@@ -237,6 +240,8 @@ class DependencyBuilder
             'current_version' => (string) $mboStatus['version'],
             'installed' => (bool) $mboStatus['isInstalled'],
             'enabled' => false,
+            'id' => Installer::MODULE_ID,
+            'name' => Installer::MODULE_NAME,
         ], $mboRoutes);
     }
 
