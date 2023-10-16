@@ -9,6 +9,9 @@
   convertWarningsToExceptions="true"
   xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.3/phpunit.xsd"
 >
+  <php>
+    <ini name="memory_limit" value="-1"/>
+  </php>
   <testsuites>
     <testsuite name="Integration">
       <directory suffix="Test.php">tests/Integration</directory>

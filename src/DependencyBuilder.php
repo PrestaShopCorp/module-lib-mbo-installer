@@ -6,7 +6,7 @@ use Symfony\Component\Routing\Router;
 
 class DependencyBuilder
 {
-    const DEPENDENCY_FILENAME = 'ps_dependencies.json';
+    const DEPENDENCY_FILENAME = 'module_dependencies.json';
     const GET_PARAMETER = 'mbo_action_needed';
 
     /**
@@ -155,7 +155,6 @@ class DependencyBuilder
         if ($this->isMboNeeded() && !isset($dependenciesContent['dependencies'][Installer::MODULE_NAME])) {
             $dependenciesContent['dependencies'][] = [
                 'name' => Installer::MODULE_NAME,
-                'id' => Installer::MODULE_ID,
             ];
         }
 
@@ -240,7 +239,6 @@ class DependencyBuilder
             'current_version' => (string) $mboStatus['version'],
             'installed' => (bool) $mboStatus['isInstalled'],
             'enabled' => false,
-            'id' => Installer::MODULE_ID,
             'name' => Installer::MODULE_NAME,
         ], $mboRoutes);
     }

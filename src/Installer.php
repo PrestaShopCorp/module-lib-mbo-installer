@@ -6,7 +6,6 @@ use GuzzleHttp\Psr7\Request;
 use Prestashop\ModuleLibGuzzleAdapter\ClientFactory;
 use Prestashop\ModuleLibGuzzleAdapter\Interfaces\ClientExceptionInterface;
 use Prestashop\ModuleLibGuzzleAdapter\Interfaces\HttpClientInterface;
-use PrestaShop\PrestaShop\Core\Addon\AddonManagerInterface;
 use PrestaShop\PrestaShop\Core\Addon\Module\ModuleManagerBuilder;
 
 class Installer
@@ -21,7 +20,7 @@ class Installer
     protected $marketplaceClient;
 
     /**
-     * @var AddonManagerInterface
+     * @var \PrestaShop\PrestaShop\Core\Module\ModuleManager|\PrestaShop\PrestaShop\Core\Addon\Module\ModuleManager
      */
     protected $moduleManager;
 
