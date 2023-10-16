@@ -6,6 +6,7 @@ use GuzzleHttp\Psr7\Request;
 use Prestashop\ModuleLibGuzzleAdapter\ClientFactory;
 use Prestashop\ModuleLibGuzzleAdapter\Interfaces\ClientExceptionInterface;
 use Prestashop\ModuleLibGuzzleAdapter\Interfaces\HttpClientInterface;
+use PrestaShop\PrestaShop\Core\Addon\AddonManagerInterface;
 use PrestaShop\PrestaShop\Core\Addon\Module\ModuleManagerBuilder;
 
 class Installer
@@ -20,9 +21,9 @@ class Installer
     protected $marketplaceClient;
 
     /**
-     * @var ModuleManagerBuilder
+     * @var AddonManagerInterface
      */
-    protected $moduleManagerBuilder;
+    protected $moduleManager;
 
     /**
      * @var string
@@ -41,8 +42,12 @@ class Installer
             throw new \Exception('ModuleManagerBuilder::getInstance() failed');
         }
 
+        $this->moduleManager = $moduleManagerBuilder->build();
+        if (is_null($this->moduleManager)) {
+            throw new \Exception('ModuleManagerBuilder::build() failed');
+        }
+
         $this->marketplaceClient = (new ClientFactory())->getClient(['base_uri' => self::ADDONS_URL]);
-        $this->moduleManagerBuilder = $moduleManagerBuilder;
         $this->prestashopVersion = $prestashopVersion;
     }
 
@@ -58,10 +63,10 @@ class Installer
         // On PrestaShop 1.7, the signature is install($source), with $source a module name or a path to an archive.
         // On PrestaShop 8, the signature is install(string $name, $source = null).
         if (version_compare($this->prestashopVersion, '8.0.0', '>=')) {
-            return $this->moduleManagerBuilder->build()->install(self::MODULE_NAME, $this->downloadModule());
+            return $this->moduleManager->install(self::MODULE_NAME, $this->downloadModule());
         }
 
-        return $this->moduleManagerBuilder->build()->install(self::MODULE_NAME);
+        return $this->moduleManager->install(self::MODULE_NAME);
     }
 
     /**
@@ -73,7 +78,7 @@ class Installer
      */
     public function enableModule()
     {
-        return $this->moduleManagerBuilder->build()->enable(self::MODULE_NAME);
+        return $this->moduleManager->enable(self::MODULE_NAME);
     }
 
     /**
