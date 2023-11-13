@@ -2,6 +2,8 @@
 
 namespace Prestashop\ModuleLibMboInstaller;
 
+use Prestashop\ModuleLibGuzzleAdapter\Interfaces\ClientExceptionInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Routing\Router;
 
 class DependencyBuilder
@@ -44,6 +46,7 @@ class DependencyBuilder
      * }
      *
      * @throws \Exception
+     * @throws ClientExceptionInterface
      */
     public function handleDependencies()
     {
@@ -53,9 +56,34 @@ class DependencyBuilder
     }
 
     /**
+     * @return bool
+     *
+     * @throws \Exception
+     */
+    public function areDependenciesMet()
+    {
+        $dependencies = $this->getDependencies(false);
+
+        foreach ($dependencies as $dependencyName => $dependency) {
+            if (
+                !array_key_exists('installed', $dependency)
+                || !array_key_exists('enabled', $dependency)
+                || false === $dependency['installed']
+                || false === $dependency['enabled']
+            ) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Install or enable the MBO depending on the action requested
      *
      * @return void
+     *
+     * @throws \Exception|ClientExceptionInterface
      */
     protected function handleMboInstallation()
     {
@@ -110,70 +138,38 @@ class DependencyBuilder
      */
     protected function buildDependenciesContext()
     {
-        $data = [
+        return [
             'module_display_name' => (string) $this->module->displayName,
             'module_name' => (string) $this->module->name,
             'module_version' => (string) $this->module->version,
             'ps_version' => (string) _PS_VERSION_,
             'php_version' => (string) PHP_VERSION,
-            'dependencies' => [],
+            'locale' => $this->getLocale(),
+            'dependencies' => $this->getDependencies(true),
         ];
+    }
 
+    /**
+     * @return string
+     */
+    private function getLocale()
+    {
         $context = \ContextCore::getContext();
         if ($context !== null && $context->employee !== null) {
-            $locale = \DbCore::getInstance()->getValue('SELECT `locale` FROM `' . _DB_PREFIX_ . 'lang` WHERE `id_lang`=' . pSQL((string) $context->employee->id_lang));
+            $locale = \DbCore::getInstance()->getValue(
+                sprintf(
+                    'SELECT `locale` FROM `%slang` WHERE `id_lang`=%s',
+                    _DB_PREFIX_,
+                    pSQL((string) $context->employee->id_lang)
+                )
+            );
         }
 
         if (empty($locale)) {
-            $locale = 'en-GB';
+            return 'en-GB';
         }
 
-        $data['locale'] = (string) $locale;
-
-        $dependencyFile = $this->module->getLocalPath() . self::DEPENDENCY_FILENAME;
-        if (!file_exists($dependencyFile)) {
-            throw new \Exception(self::DEPENDENCY_FILENAME . ' file is not found in ' . $this->module->getLocalPath());
-        }
-
-        if ($fileContent = file_get_contents($dependencyFile)) {
-            $dependenciesContent = json_decode($fileContent, true);
-        }
-        if (!isset($dependenciesContent) || json_last_error() != JSON_ERROR_NONE) {
-            throw new \Exception(self::DEPENDENCY_FILENAME . ' file may be malformatted.');
-        }
-
-        if (!is_array($dependenciesContent) || empty($dependenciesContent['dependencies']) || !is_array($dependenciesContent['dependencies'])) {
-            $mboDependencyData = $this->addMboInDependencies();
-
-            if ($mboDependencyData) {
-                $data['dependencies'][Installer::MODULE_NAME] = $mboDependencyData;
-            }
-
-            return $data;
-        }
-
-        if ($this->isMboNeeded() && !isset($dependenciesContent['dependencies'][Installer::MODULE_NAME])) {
-            $dependenciesContent['dependencies'][] = [
-                'name' => Installer::MODULE_NAME,
-            ];
-        }
-
-        foreach ($dependenciesContent['dependencies'] as $dependency) {
-            $dependencyData = \DbCore::getInstance()->getRow('SELECT `id_module`, `active`, `version` FROM `' . _DB_PREFIX_ . 'module` WHERE `name` = "' . pSQL((string) $dependency['name']) . '"');
-
-            $data['dependencies'][$dependency['name']] = array_merge($dependency, $this->buildRoutesForModule($dependency['name']));
-            if (!$dependencyData) {
-                $data['dependencies'][$dependency['name']]['installed'] = false;
-                continue;
-            }
-            $data['dependencies'][$dependency['name']] = array_merge($data['dependencies'][$dependency['name']], [
-                'installed' => true,
-                'enabled' => isset($dependencyData['active']) && (bool) $dependencyData['active'],
-                'current_version' => isset($dependencyData['version']) ? $dependencyData['version'] : null,
-            ]);
-        }
-
-        return $data;
+        return $locale;
     }
 
     /**
@@ -185,10 +181,14 @@ class DependencyBuilder
     {
         $urls = [];
         foreach (['install', 'enable', 'upgrade'] as $action) {
-            $urls[$action] = $this->router->generate('admin_module_manage_action', [
+            $route = $this->router->generate('admin_module_manage_action', [
                 'action' => $action,
                 'module_name' => $moduleName,
             ]);
+
+            if (is_string($route)) {
+                $urls[$action] = $route;
+            }
         }
 
         return $urls;
@@ -207,7 +207,7 @@ class DependencyBuilder
         }
 
         $container = $kernel->getContainer();
-        if (!$container instanceof \Symfony\Component\DependencyInjection\ContainerInterface) {
+        if (!$container instanceof ContainerInterface) {
             throw new \Exception('Unable to retrieve Symfony container.');
         }
 
@@ -219,9 +219,18 @@ class DependencyBuilder
     }
 
     /**
-     * @return array<string,bool|string|int>|null
+     * @param bool $addRoutes
+     *
+     * @return array{
+     *   "name": string,
+     *   "installed": bool,
+     *   "enabled": bool,
+     *   "current_version": string,
+     * }|non-empty-array<string, bool|string>|null
+     *
+     * @throws \Exception
      */
-    protected function addMboInDependencies()
+    protected function addMboInDependencies($addRoutes = false)
     {
         if (!$this->isMboNeeded()) {
             return null;
@@ -229,18 +238,21 @@ class DependencyBuilder
 
         $mboStatus = (new Presenter())->present();
 
-        if ((bool) $mboStatus['isEnabled']) {
-            return null;
-        }
-
-        $mboRoutes = $this->buildRoutesForModule(Installer::MODULE_NAME);
-
-        return array_merge([
+        $specification = [
             'current_version' => (string) $mboStatus['version'],
             'installed' => (bool) $mboStatus['isInstalled'],
-            'enabled' => false,
+            'enabled' => (bool) $mboStatus['isEnabled'],
             'name' => Installer::MODULE_NAME,
-        ], $mboRoutes);
+        ];
+
+        if (!$addRoutes) {
+            return $specification;
+        }
+
+        return array_merge(
+            $specification,
+            $this->buildRoutesForModule(Installer::MODULE_NAME)
+        );
     }
 
     /**
@@ -249,5 +261,105 @@ class DependencyBuilder
     protected function isMboNeeded()
     {
         return version_compare(_PS_VERSION_, '1.7.5', '>=');
+    }
+
+    /**
+     * @param bool $addRoutes
+     *
+     * @return array<string, array{
+     *       "name": string,
+     *       "installed": bool,
+     *       "enabled": bool,
+     *       "current_version": string,
+     *    }>|array<ps_mbo, non-empty-array<string, bool|string>>
+     *
+     * @throws \Exception
+     */
+    private function getDependencies($addRoutes = false)
+    {
+        $dependenciesContent = $this->getDependenciesSpecification();
+
+        if (empty($dependenciesContent['dependencies'])) {
+            $mboDependency = $this->addMboInDependencies($addRoutes);
+            if (null === $mboDependency) {
+                return [];
+            }
+
+            return [
+                Installer::MODULE_NAME => $mboDependency,
+            ];
+        }
+
+        if ($this->isMboNeeded() && !isset($dependenciesContent['dependencies'][Installer::MODULE_NAME])) {
+            $dependenciesContent['dependencies'][] = [
+                'name' => Installer::MODULE_NAME,
+            ];
+        }
+
+        $dependencies = [];
+        foreach ($dependenciesContent['dependencies'] as $dependency) {
+            if (!is_array($dependency) || !array_key_exists('name', $dependency)) {
+                continue;
+            }
+
+            $dependencyData = \DbCore::getInstance()->getRow(
+                sprintf(
+                    'SELECT `id_module`, `active`, `version` FROM `%smodule` WHERE `name` = "%s"',
+                    _DB_PREFIX_,
+                    pSQL((string) $dependency['name'])
+                )
+            );
+
+            if ($addRoutes) {
+                $dependencies[$dependency['name']] = array_merge(
+                    $dependency,
+                    $this->buildRoutesForModule($dependency['name'])
+                );
+            } else {
+                $dependencies[$dependency['name']] = $dependency;
+            }
+
+            if (!$dependencyData) {
+                $dependencies[$dependency['name']]['installed'] = false;
+                $dependencies[$dependency['name']]['enabled'] = false;
+                continue;
+            }
+            $dependencies[$dependency['name']] = array_merge($dependencies[$dependency['name']], [
+                'installed' => true,
+                'enabled' => isset($dependencyData['active']) && (bool) $dependencyData['active'],
+                'current_version' => isset($dependencyData['version']) ? $dependencyData['version'] : null,
+            ]);
+        }
+
+        return $dependencies;
+    }
+
+    /**
+     * @return array{
+     *     "dependencies": array<string, string|int|bool>
+     * }
+     *
+     * @throws \Exception
+     */
+    private function getDependenciesSpecification()
+    {
+        $dependencyFile = $this->module->getLocalPath() . self::DEPENDENCY_FILENAME;
+        if (!file_exists($dependencyFile)) {
+            throw new \Exception(self::DEPENDENCY_FILENAME . ' file is not found in ' . $this->module->getLocalPath());
+        }
+
+        if ($fileContent = file_get_contents($dependencyFile)) {
+            $dependenciesContent = json_decode($fileContent, true);
+        }
+        if (
+            !isset($dependenciesContent)
+            || !is_array($dependenciesContent)
+            || !array_key_exists('dependencies', $dependenciesContent)
+            || json_last_error() != JSON_ERROR_NONE
+        ) {
+            throw new \Exception(self::DEPENDENCY_FILENAME . ' file may be malformed.');
+        }
+
+        return $dependenciesContent;
     }
 }

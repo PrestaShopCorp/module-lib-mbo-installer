@@ -4,7 +4,8 @@
   "license": "AFL-3.0",
   "require": {
     "php": ">=5.6",
-    "prestashop/module-lib-guzzle-adapter": "^0.6"
+    "prestashop/module-lib-guzzle-adapter": "^0.6",
+    "ext-json": "*"
   },
   "config": {
     "platform": {
