@@ -4,9 +4,9 @@ namespace Prestashop\ModuleLibMboInstaller;
 
 use GuzzleHttp\Psr7\Request;
 use Prestashop\ModuleLibGuzzleAdapter\ClientFactory;
-use Prestashop\ModuleLibGuzzleAdapter\Interfaces\ClientExceptionInterface;
-use Prestashop\ModuleLibGuzzleAdapter\Interfaces\HttpClientInterface;
 use PrestaShop\PrestaShop\Core\Addon\Module\ModuleManagerBuilder;
+use Psr\Http\Client\ClientExceptionInterface;
+use Psr\Http\Client\ClientInterface;
 
 class Installer
 {
@@ -15,7 +15,7 @@ class Installer
     const MODULE_NAME = 'ps_mbo';
 
     /**
-     * @var HttpClientInterface
+     * @var ClientInterface
      */
     protected $marketplaceClient;
 

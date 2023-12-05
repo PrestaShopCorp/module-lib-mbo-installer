@@ -2,7 +2,7 @@
 
 namespace Prestashop\ModuleLibMboInstaller;
 
-use Prestashop\ModuleLibGuzzleAdapter\Interfaces\ClientExceptionInterface;
+use Psr\Http\Client\ClientExceptionInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Routing\Router;
 
