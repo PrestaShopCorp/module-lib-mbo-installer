@@ -2,6 +2,8 @@
 
 namespace Prestashop\ModuleLibMboInstaller;
 
+use PrestaShop\PrestaShop\Core\Addon\Module\ModuleManagerBuilder;
+
 class Presenter
 {
     /**
@@ -19,10 +21,20 @@ class Presenter
             $version = $mboModule->version;
         }
 
+        $moduleManagerBuilder = ModuleManagerBuilder::getInstance();
+        if (is_null($moduleManagerBuilder)) {
+            throw new \Exception('ModuleManagerBuilder::getInstance() failed');
+        }
+
+        $moduleManager = $moduleManagerBuilder->build();
+        if (is_null($moduleManager)) {
+            throw new \Exception('ModuleManagerBuilder::build() failed');
+        }
+
         return [
             'isPresentOnDisk' => (bool) $mboModule,
-            'isInstalled' => ($mboModule && \Module::isInstalled(Installer::MODULE_NAME)),
-            'isEnabled' => ($mboModule && \Module::isEnabled(Installer::MODULE_NAME)),
+            'isInstalled' => ($mboModule && $moduleManager->isInstalled(Installer::MODULE_NAME)),
+            'isEnabled' => ($mboModule && $moduleManager->isEnabled(Installer::MODULE_NAME)),
             'version' => $version,
         ];
     }
