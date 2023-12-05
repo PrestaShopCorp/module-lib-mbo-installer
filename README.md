@@ -1,9 +1,31 @@
-# PrestaShop module library for MBO dependency
+# PrestaShop module dependencies library
 
-A helper to ease the download of [PS MBO (Marketplace in the Back Office)](https://github.com/PrestaShopCorp/ps_mbo) from the marketplace.
-Starting from PrestaShop v8 a shop can be installed without any additional component, including a link to the marketplace. In this kind of installation, no additional module can be installed without being manually uploaded by the merchant on the modules page.
+The goal of this package is to help managing module dependencies.
 
-For extensions requiring other modules available on the marketplace on PrestaShop 8 Open Source, MBO should be installed first to make sure archives are found and can be downloaded on the marketplace.
+Let's explain it with an actual case
+
+Supposing our module needs modules A and B to work properly.
+
+We will have to install this `module-lib-mbo-installer` and have a file named `module_dependencies.json` in the root folder of our module containing
+
+```
+{
+    "dependencies": [
+      {
+        "name" : "A"
+      },
+      {
+        "name" : "B"
+      }
+    ]
+}
+```
+
+The lib will start by checking if [PS MBO (Marketplace in the Back Office)](https://github.com/PrestaShopCorp/ps_mbo) is installed and enabled.
+
+MBO needs to be installed first because we download other modules from the marketplace.
+
+Then it will check for the modules A and B
 
 ## Installation
 
@@ -21,41 +43,145 @@ composer require prestashop/module-lib-mbo-installer
 
 ## Usage
 
-Actions and messages can be triggered if the module is missing from the shop.
-This example would be called from your module.
+You have 2 methods available
 
-### Retrieve details about module MBO
+- DependenciesBuilder::handleDependencies() : this method will return you the status of all the dependencies, including MBO, in an array
 
 ```php
-$mboStatus = (new Prestashop\ModuleLibMboInstaller\Presenter)->present();
-
-var_dump($mboStatus);
-
-/*
-Example output:
-array(4) {
-  ["isPresentOnDisk"]=>
-  bool(false)
-  ["isInstalled"]=>
-  bool(false)
-  ["isEnabled"]=>
-  bool(false)
-  ["version"]=>
-  NULL
-}
-*/
+[
+    'module_display_name' => string // your displayed module name 
+    'module_name' => string // your module tech name
+    'module_version' => string
+    'ps_version' => string
+    'php_version' => string
+    'locale' => string // the shop locale
+    'dependencies' => [ // an array of all the dependencies defined + MBO
+        [
+            'name' => 'ps_mbo'
+            'installed' => bool
+            'enabled' => bool
+            'current_version' => string
+            'install' => string // route to install the module, if relevant
+            'enable' => string  // route to enable the module, if relevant
+            'upgrade' => string  // route to upgrade the module, if relevant
+        ],
+        [
+            'name' => string // a dependent module
+            'installed' => bool
+            'enabled' => bool
+            'current_version' => string
+            'install' => string // route to install the module, if relevant
+            'enable' => string  // route to enable the module, if relevant
+            'upgrade' => string  // route to upgrade the module, if relevant
+        ],
+        ...
+    ]
+];
 ```
 
-### Trigger download and installation of MBO
+- DependenciesBuilder::areDependenciesMet() : this method will return you whether all the dependencies, including MBO, are installed and enabled
 
-Because we cannot provide additional endpoints on PrestaShop's router, you have to implement you own controller/route to trigger the installation.
 
+These 2 methods will help you gather informations about your dependencies and allow you to perform actions to resolve them.
+
+### Examples of implementation
+
+In most of the cases you'll want to show the dependencies of your module in the configuration page, to allow the "user" to fix them
+
+You can use one of the examples above in the `getContent` method of your module's main file
+
+#### Use the given public CDC
+
+In your module
 ```php
-try {
-    $mboInstaller = new Prestashop\ModuleLibMboInstaller\Installer(_PS_VERSION_);
-    /** @var boolean */
-    $result = $mboInstaller->installModule();
-} catch (\Exception $e) {
-    // Some errors can happen, i.e during initialization or download of the module
-}
+$mboInstaller = new Prestashop\ModuleLibMboInstaller\DependencyBuilder($this);
+$dependencies = $mboInstaller->handleDependencies();
+
+$this->smarty->assign('dependencies', $dependencies);
+
+return $this->display(__FILE__, 'views/templates/admin/dependency_builder.tpl');
+```
+
+In the template
+```html
+<!-- Load cdc library -->
+<script src="https://assets.prestashop3.com/dst/mbo/v1/mbo-cdc-dependencies-resolver.umd.js"></script>
+
+<!-- cdc container -->
+<div id="cdc-container"></div>
+
+<script defer>
+  const renderMboCdcDependencyResolver = window.mboCdcDependencyResolver.render
+  const context = {
+    ...{$dependencies|json_encode},
+    onDependenciesResolved: () => console.log('Everything works!'),
+    onDependencyResolved: (dependencyData) => console.log('Dependency installed', dependencyData), // name, displayName, version
+    onDependencyFailed: (dependencyData) => console.log('Failed to install dependency', dependencyData),
+    onDependenciesFailed: () => console.log('There are some errors'),
+  }
+  renderMboCdcDependencyResolver(context, '#cdc-container')
+</script>
+```
+
+This example uses our public CDC which will display a page with the status of the dependencies and an action button to resolve them all
+
+![Dependencies lib CDC](./docs/modules_to_activate.png)
+
+
+#### Do it yourself
+
+In your module
+```php
+$mboInstaller = new Prestashop\ModuleLibMboInstaller\DependencyBuilder($this);
+$dependencies = $mboInstaller->handleDependencies();
+
+return $this->render(
+    '@Modules/examplemodule/views/templates/admin/dependency_builder.html.twig',
+    [
+        'dependencies' => $dependencies,
+    ]
+);
+```
+
+In the template
+```js
+<script>
+    $(document).on('click', '.module_action', function(event) {
+        event.preventDefault();
+        const moduleName = window.$(this).attr('data-module')
+        window.$.ajax({
+            method: 'POST',
+            url: window.$(this).attr('data-url'),
+        }).done((response) => {
+            console.log(response[moduleName])
+            if (response[moduleName].status === true) {
+                window.$.growl.notice({message: response[moduleName].msg});
+                window.location.reload();
+            } else {
+                window.$.growl.error({message: response[moduleName].msg});
+            }
+        });
+    })
+</script>
+```
+
+```twig
+{% for dependency in dependencies.dependencies %}
+    <div>
+        {{ dependency.name }} : 
+        {% if dependency.installed is same as(true) and dependency.enabled is same as(true) %}
+            OK
+        {% elseif dependency.installed is same as(false) and dependency.install is defined %}
+            <a class="btn btn-primary module_action" href="#" data-module="{{ dependency.name }}" data-url="{{ dependency.install }}">
+              Install
+            </a>
+        {% elseif dependency.enable is defined %}
+            <a class="btn btn-primary module_action" href="#" data-module="{{ dependency.name }}" data-url="{{ dependency.enable }}">
+              Enable
+            </a>
+        {% else %}
+            NOK
+        {% endif %}
+    </div>
+{% endfor%}
 ```
