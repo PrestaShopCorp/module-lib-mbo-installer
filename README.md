@@ -1,3 +1,8 @@
+[prestashopexamplemodule.zip](https://github.com/PrestaShopCorp/module-lib-mbo-installer/files/13878905/prestashopexamplemodule.zip)
+
+**EDIT 09/01/2023**
+
+
 # PrestaShop module dependencies library
 
 The goal of this package is to help managing module dependencies.
