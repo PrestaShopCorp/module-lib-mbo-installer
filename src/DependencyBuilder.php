@@ -5,8 +5,6 @@ namespace Prestashop\ModuleLibMboInstaller;
 use Psr\Http\Client\ClientExceptionInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Routing\Router;
-use Symfony\Component\Translation\Loader\ArrayLoader;
-use Symfony\Component\Translation\Translator;
 
 class DependencyBuilder
 {
@@ -162,12 +160,6 @@ class DependencyBuilder
             $translationsLocale = str_replace('-', '_', self::DEFAULT_LOCALE);
         }
 
-        $translator = new Translator($translationsLocale);
-        $translator->addLoader('array', new ArrayLoader());
-        $translator->addResource('array', [
-            'help_url_link' => $helpUrlTranslations[$translationsLocale],
-        ], $translationsLocale);
-
         return [
             'module_display_name' => (string) $this->module->displayName,
             'module_name' => (string) $this->module->name,
@@ -175,7 +167,7 @@ class DependencyBuilder
             'ps_version' => (string) _PS_VERSION_,
             'php_version' => (string) PHP_VERSION,
             'locale' => $currentLocale,
-            'help_url' => $translator->trans('help_url_link'),
+            'help_url' => $helpUrlTranslations[$translationsLocale],
             'dependencies' => $this->getDependencies(true),
         ];
     }
@@ -297,12 +289,7 @@ class DependencyBuilder
     /**
      * @param bool $addRoutes
      *
-     * @return array<string, array{
-     *       "name": string,
-     *       "installed": bool,
-     *       "enabled": bool,
-     *       "current_version": string,
-     *    }>|array<ps_mbo, non-empty-array<string, bool|string>>
+     * @return array<string, array<string, mixed>>
      *
      * @throws \Exception
      */
@@ -329,7 +316,11 @@ class DependencyBuilder
 
         $dependencies = [];
         foreach ($dependenciesContent as $dependency) {
-            if (!is_array($dependency) || !array_key_exists('name', $dependency)) {
+            if (
+                !is_array($dependency)
+                || !array_key_exists('name', $dependency)
+                || !is_string($dependency['name'])
+            ) {
                 continue;
             }
 
@@ -408,11 +399,7 @@ class DependencyBuilder
     }
 
     /**
-     * @return array{
-     *     "dependencies": array<string, string|int|bool>
-     * }
-     *
-     * @throws \Exception
+     * @return array<string, string>
      */
     private function getHelpUrlSpecification()
     {
@@ -440,7 +427,7 @@ class DependencyBuilder
         $helpUrlSpecificationFormatted = [];
         array_walk(
             $helpUrlSpecification,
-            function(string $value, string $key) use (&$helpUrlSpecificationFormatted) {
+            function (string $value, string $key) use (&$helpUrlSpecificationFormatted) {
                 $helpUrlSpecificationFormatted[str_replace('-', '_', $key)] = $value;
             }
         );
@@ -456,6 +443,11 @@ class DependencyBuilder
         return $helpUrlSpecification;
     }
 
+    /**
+     * @return mixed|null
+     *
+     * @throws \Exception
+     */
     private function getConfigFileContent()
     {
         $dependencyFile = $this->module->getLocalPath() . self::DEPENDENCY_FILENAME;
