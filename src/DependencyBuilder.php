@@ -5,11 +5,27 @@ namespace Prestashop\ModuleLibMboInstaller;
 use Psr\Http\Client\ClientExceptionInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Routing\Router;
+use Symfony\Component\Translation\Loader\ArrayLoader;
+use Symfony\Component\Translation\Translator;
 
 class DependencyBuilder
 {
     const DEPENDENCY_FILENAME = 'module_dependencies.json';
     const GET_PARAMETER = 'mbo_action_needed';
+    const DEFAULT_LOCALE = 'en-GB';
+    const DEFAULT_HELP_URLS = [
+        'en_GB' => 'https://addons.prestashop.com/en/contact-us',
+        'en_US' => 'https://addons.prestashop.com/en/contact-us',
+        'de_DE' => 'https://addons.prestashop.com/de/contact-us',
+        'es_ES' => 'https://addons.prestashop.com/es/contacte-con-nosotros',
+        'fr_FR' => 'https://addons.prestashop.com/fr/contactez-nous',
+        'it_IT' => 'https://addons.prestashop.com/it/contact-us',
+        'nl_NL' => 'https://addons.prestashop.com/nl/contact-us',
+        'pl_PL' => 'https://addons.prestashop.com/pl/contact-us',
+        'pt_PT' => 'https://addons.prestashop.com/pt/contact-us',
+        'ro_RO' => 'https://addons.prestashop.com/en/contact-us',
+        'ru_RU' => 'https://addons.prestashop.com/ru/contact-us',
+    ];
 
     /**
      * @var \ModuleCore
@@ -138,13 +154,28 @@ class DependencyBuilder
      */
     protected function buildDependenciesContext()
     {
+        $helpUrlTranslations = $this->getHelpUrlSpecification();
+        $currentLocale = $this->getLocale();
+        $translationsLocale = str_replace('-', '_', $currentLocale);
+
+        if (!array_key_exists($translationsLocale, $helpUrlTranslations)) {
+            $translationsLocale = str_replace('-', '_', self::DEFAULT_LOCALE);
+        }
+
+        $translator = new Translator($translationsLocale);
+        $translator->addLoader('array', new ArrayLoader());
+        $translator->addResource('array', [
+            'help_url_link' => $helpUrlTranslations[$translationsLocale],
+        ], $translationsLocale);
+
         return [
             'module_display_name' => (string) $this->module->displayName,
             'module_name' => (string) $this->module->name,
             'module_version' => (string) $this->module->version,
             'ps_version' => (string) _PS_VERSION_,
             'php_version' => (string) PHP_VERSION,
-            'locale' => $this->getLocale(),
+            'locale' => $currentLocale,
+            'help_url' => $translator->trans('help_url_link'),
             'dependencies' => $this->getDependencies(true),
         ];
     }
@@ -166,7 +197,7 @@ class DependencyBuilder
         }
 
         if (empty($locale)) {
-            return 'en-GB';
+            return self::DEFAULT_LOCALE;
         }
 
         return $locale;
@@ -279,7 +310,7 @@ class DependencyBuilder
     {
         $dependenciesContent = $this->getDependenciesSpecification();
 
-        if (empty($dependenciesContent['dependencies'])) {
+        if (empty($dependenciesContent)) {
             $mboDependency = $this->addMboInDependencies($addRoutes);
             if (null === $mboDependency) {
                 return [];
@@ -290,14 +321,14 @@ class DependencyBuilder
             ];
         }
 
-        if ($this->isMboNeeded() && !isset($dependenciesContent['dependencies'][Installer::MODULE_NAME])) {
-            $dependenciesContent['dependencies'][] = [
+        if ($this->isMboNeeded() && !isset($dependenciesContent[Installer::MODULE_NAME])) {
+            $dependenciesContent[] = [
                 'name' => Installer::MODULE_NAME,
             ];
         }
 
         $dependencies = [];
-        foreach ($dependenciesContent['dependencies'] as $dependency) {
+        foreach ($dependenciesContent as $dependency) {
             if (!is_array($dependency) || !array_key_exists('name', $dependency)) {
                 continue;
             }
@@ -362,23 +393,80 @@ class DependencyBuilder
      */
     private function getDependenciesSpecification()
     {
+        $configFileContent = $this->getConfigFileContent();
+
+        if (
+            !isset($configFileContent)
+            || !is_array($configFileContent)
+            || !array_key_exists('dependencies', $configFileContent)
+            || json_last_error() != JSON_ERROR_NONE
+        ) {
+            throw new \Exception(self::DEPENDENCY_FILENAME . ' file may be malformed.');
+        }
+
+        return $configFileContent['dependencies'];
+    }
+
+    /**
+     * @return array{
+     *     "dependencies": array<string, string|int|bool>
+     * }
+     *
+     * @throws \Exception
+     */
+    private function getHelpUrlSpecification()
+    {
+        $configFileContent = $this->getConfigFileContent();
+        $defaultLocaleFormatted = str_replace('-', '_', self::DEFAULT_LOCALE);
+
+        if (
+            !isset($configFileContent)
+            || !is_array($configFileContent)
+            || !array_key_exists('help_url', $configFileContent)
+            || json_last_error() != JSON_ERROR_NONE
+        ) {
+            return self::DEFAULT_HELP_URLS;
+        }
+
+        $helpUrlSpecification = $configFileContent['help_url'];
+
+        // Validate help_url specification
+        if (!array_key_exists('default', $helpUrlSpecification)) {
+            return self::DEFAULT_HELP_URLS;
+        }
+
+        // Transform keys to use CLDR notation (en_US) instead of IETF (en-US)
+        // @see PrestaShop\PrestaShop\Core\Localization\CLDR\Reader
+        $helpUrlSpecificationFormatted = [];
+        array_walk(
+            $helpUrlSpecification,
+            function(string $value, string $key) use (&$helpUrlSpecificationFormatted) {
+                $helpUrlSpecificationFormatted[str_replace('-', '_', $key)] = $value;
+            }
+        );
+
+        $helpUrlSpecification = $helpUrlSpecificationFormatted;
+
+        // Set English as default language
+        if (!array_key_exists($defaultLocaleFormatted, $helpUrlSpecification)) {
+            $helpUrlSpecification[$defaultLocaleFormatted] = $helpUrlSpecification['default'];
+        }
+        unset($helpUrlSpecification['default']);
+
+        return $helpUrlSpecification;
+    }
+
+    private function getConfigFileContent()
+    {
         $dependencyFile = $this->module->getLocalPath() . self::DEPENDENCY_FILENAME;
         if (!file_exists($dependencyFile)) {
             throw new \Exception(self::DEPENDENCY_FILENAME . ' file is not found in ' . $this->module->getLocalPath());
         }
 
         if ($fileContent = file_get_contents($dependencyFile)) {
-            $dependenciesContent = json_decode($fileContent, true);
-        }
-        if (
-            !isset($dependenciesContent)
-            || !is_array($dependenciesContent)
-            || !array_key_exists('dependencies', $dependenciesContent)
-            || json_last_error() != JSON_ERROR_NONE
-        ) {
-            throw new \Exception(self::DEPENDENCY_FILENAME . ' file may be malformed.');
+            return json_decode($fileContent, true);
         }
 
-        return $dependenciesContent;
+        return null;
     }
 }

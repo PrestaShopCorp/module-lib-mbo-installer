@@ -5,7 +5,8 @@
   "require": {
     "php": ">=7.2.5",
     "prestashop/module-lib-guzzle-adapter": "^1.0",
-    "ext-json": "*"
+    "ext-json": "*",
+    "symfony/translation": "^5.4"
   },
   "config": {
     "platform": {
@@ -14,7 +15,8 @@
   },
   "autoload": {
     "psr-4": {
-      "Prestashop\\ModuleLibMboInstaller\\": "src/"
+      "Prestashop\\ModuleLibMboInstaller\\": "src/",
+      "Symfony\\Component\\Translation\\": "vendor/symfony/translation"
     }
   },
   "authors": [
