@@ -7,7 +7,7 @@ ifndef DOCKER
 endif
 
 phpunit: check-docker
-	docker pull prestashop/docker-internal-images:${DOCKER_INTERNAL}
+	docker build -f tests/.docker/${DOCKER_INTERNAL}/Dockerfile -t mbo-lib-installer/phpunit:${DOCKER_INTERNAL} tests/.docker/${DOCKER_INTERNAL}
 	@docker run --rm \
 		--name phpunit \
 		-e PS_DOMAIN=localhost \
@@ -17,7 +17,7 @@ phpunit: check-docker
 		-e XDEBUG_ENABLED=1 \
 		-v ${PWD}:/var/www/html/test-lib \
 		-w /var/www/html/test-lib \
-		prestashop/docker-internal-images:${DOCKER_INTERNAL} \
+		mbo-lib-installer/phpunit:${DOCKER_INTERNAL} \
 		sh -c " \
 			service mariadb start && \
 			service apache2 start && \
