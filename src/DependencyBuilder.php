@@ -204,10 +204,16 @@ class DependencyBuilder
     {
         $urls = [];
         foreach (['install', 'enable', 'upgrade'] as $action) {
-            $route = $this->router->generate('admin_module_manage_action', [
-                'action' => $action,
-                'module_name' => $moduleName,
-            ]);
+            if ($action === 'install' && $moduleName === 'ps_mbo' && !empty($_SERVER['REQUEST_URI'])) {
+                $query = http_build_query(array_merge($_GET, [self::GET_PARAMETER => '1']));
+                $baseUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+                $route = $baseUri . '?' . $query;
+            } else {
+                $route = $this->router->generate('admin_module_manage_action', [
+                    'action' => $action,
+                    'module_name' => $moduleName,
+                ]);
+            }
 
             if (is_string($route)) {
                 $urls[$action] = $route;
