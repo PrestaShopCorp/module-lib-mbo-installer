@@ -10,14 +10,19 @@ We will have to install this `module-lib-mbo-installer` and have a file named `m
 
 ```
 {
-    "dependencies": [
-      {
-        "name" : "A"
-      },
-      {
-        "name" : "B"
-      }
-    ]
+  "dependencies": [
+    {
+      "name": "ps_accounts"
+    },
+    {
+      "name": "ps_eventbus"
+    }
+  ],
+  // Optionnal part : If not provided, default to https://addons.prestashop.com/en/contact-us
+  "help_url": {
+    "default" : "https://mywebsite.com",
+    "fr_FR": "https://prestashop.fr"
+  }
 }
 ```
 
@@ -55,6 +60,7 @@ You have 2 methods available
     'ps_version' => string
     'php_version' => string
     'locale' => string // the shop locale
+    "help_url" => string // The Url Given in hepl_url config, or by default, an URL to PrestaShop support
     'dependencies' => [ // an array of all the dependencies defined + MBO
         [
             'name' => 'ps_mbo'
