@@ -2,11 +2,8 @@
 
 namespace Prestashop\ModuleLibMboInstaller;
 
-use GuzzleHttp\Psr7\Request;
-use Prestashop\ModuleLibGuzzleAdapter\ClientFactory;
 use PrestaShop\PrestaShop\Core\Addon\Module\ModuleManagerBuilder;
-use Psr\Http\Client\ClientExceptionInterface;
-use Psr\Http\Client\ClientInterface;
+use PrestaShop\ModuleLibMboInstaller\Http\HttpClient;
 
 class Installer
 {
@@ -15,7 +12,7 @@ class Installer
     const MODULE_NAME = 'ps_mbo';
 
     /**
-     * @var ClientInterface
+     * @var HttpClient
      */
     protected $marketplaceClient;
 
@@ -46,7 +43,7 @@ class Installer
             throw new \Exception('ModuleManagerBuilder::build() failed');
         }
 
-        $this->marketplaceClient = (new ClientFactory())->getClient(['base_uri' => self::ADDONS_URL]);
+        $this->marketplaceClient = new HttpClient(self::ADDONS_URL);
         $this->prestashopVersion = $prestashopVersion;
     }
 
@@ -96,9 +93,7 @@ class Installer
             'version' => $this->prestashopVersion,
         ];
 
-        $moduleData = $this->marketplaceClient->sendRequest(
-            new Request('POST', '/?' . http_build_query($params))
-        )->getBody()->getContents();
+        $moduleData = $this->marketplaceClient->post('/?', $params)->getBody();
 
         $temporaryZipFilename = tempnam(sys_get_temp_dir(), 'mod');
         if ($temporaryZipFilename === false) {
