@@ -19,8 +19,6 @@
  * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
  */
 
-declare(strict_types=1);
-
 namespace PrestaShop\ModuleLibMboInstaller\Http;
 
 class Response
@@ -68,5 +66,10 @@ class Response
     public function getBody()
     {
         return json_decode($this->body, true);
+    }
+
+    public function isSuccessful()
+    {
+        return substr((string) $this->statusCode, 0, 1) == '2';
     }
 }

@@ -19,11 +19,7 @@
  * @license   https://opensource.org/licenses/AFL-3.0 Academic Free License version 3.0
  */
 
-declare(strict_types=1);
-
 namespace PrestaShop\ModuleLibMboInstaller\Http;
-
-use RuntimeException;
 
 class HttpClient
 {
@@ -40,12 +36,12 @@ class HttpClient
      *
      * @param string $baseUrl Optional base URL for all requests
      *
-     * @throws RuntimeException if cURL extension is not loaded
+     * @throws \RuntimeException if cURL extension is not loaded
      */
-    public function __construct(string $baseUrl = '')
+    public function __construct(string $baseUrl)
     {
         if (!extension_loaded('curl')) {
-            throw new RuntimeException('cURL extension is not loaded');
+            throw new \RuntimeException('cURL extension is not loaded');
         }
 
         $this->baseUrl = rtrim($baseUrl, '/');
@@ -57,8 +53,10 @@ class HttpClient
 
     /**
      * Set default cURL options
+     * 
+     * @return void
      */
-    private function setDefaultOptions(): void
+    private function setDefaultOptions()
     {
         $this->options = [
             CURLOPT_RETURNTRANSFER => true,
@@ -78,7 +76,7 @@ class HttpClient
      *
      * @return self
      */
-    public function setHeaders(array $headers): self
+    public function setHeaders(array $headers)
     {
         $this->headers = $headers;
 
@@ -93,7 +91,7 @@ class HttpClient
      *
      * @return self
      */
-    public function addHeader(string $name, string $value): self
+    public function addHeader(string $name, string $value)
     {
         $this->headers[] = "$name: $value";
 
@@ -107,7 +105,7 @@ class HttpClient
      *
      * @return self
      */
-    public function setOptions(array $options): self
+    public function setOptions(array $options)
     {
         $this->options = $options + $this->options;
 
@@ -123,7 +121,7 @@ class HttpClient
      *
      * @return Response
      *
-     * @throws RuntimeException on cURL errors
+     * @throws \RuntimeException on cURL errors
      */
     public function request(string $method, string $url, $data = null)
     {

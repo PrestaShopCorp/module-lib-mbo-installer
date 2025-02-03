@@ -2,8 +2,8 @@
 
 namespace Prestashop\ModuleLibMboInstaller;
 
-use PrestaShop\PrestaShop\Core\Addon\Module\ModuleManagerBuilder;
 use PrestaShop\ModuleLibMboInstaller\Http\HttpClient;
+use PrestaShop\PrestaShop\Core\Addon\Module\ModuleManagerBuilder;
 
 class Installer
 {
@@ -82,7 +82,7 @@ class Installer
      *
      * @return string
      *
-     * @throws \Exception|ClientExceptionInterface
+     * @throws \Exception
      */
     private function downloadModule()
     {
@@ -93,7 +93,12 @@ class Installer
             'version' => $this->prestashopVersion,
         ];
 
+        $fetchModuleData = $this->marketplaceClient->post('/?', $params);
         $moduleData = $this->marketplaceClient->post('/?', $params)->getBody();
+
+        if (!$fetchModuleData->isSuccessful()) {
+            throw new \Exception('An error occured while fetching data');
+        }
 
         $temporaryZipFilename = tempnam(sys_get_temp_dir(), 'mod');
         if ($temporaryZipFilename === false) {
