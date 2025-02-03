@@ -2,7 +2,6 @@
 
 namespace Prestashop\ModuleLibMboInstaller;
 
-use Psr\Http\Client\ClientExceptionInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Routing\Router;
 
@@ -46,7 +45,6 @@ class DependencyBuilder
      * }
      *
      * @throws \Exception
-     * @throws ClientExceptionInterface
      */
     public function handleDependencies()
     {
@@ -83,7 +81,7 @@ class DependencyBuilder
      *
      * @return void
      *
-     * @throws \Exception|ClientExceptionInterface
+     * @throws \Exception
      */
     protected function handleMboInstallation()
     {

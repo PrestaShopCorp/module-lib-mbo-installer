@@ -2,7 +2,7 @@
 
 namespace Prestashop\ModuleLibMboInstaller;
 
-use PrestaShop\ModuleLibMboInstaller\Http\HttpClient;
+use PrestaShop\ModuleLibMboInstaller\HttpClient;
 use PrestaShop\PrestaShop\Core\Addon\Module\ModuleManagerBuilder;
 
 class Installer
@@ -52,7 +52,7 @@ class Installer
      *
      * @return bool
      *
-     * @throws ClientExceptionInterface
+     * @throws \Exception
      */
     public function installModule()
     {
@@ -94,7 +94,7 @@ class Installer
         ];
 
         $fetchModuleData = $this->marketplaceClient->post('/?', $params);
-        $moduleData = $this->marketplaceClient->post('/?', $params)->getBody();
+        $moduleData = $fetchModuleData->getBody();
 
         if (!$fetchModuleData->isSuccessful()) {
             throw new \Exception('An error occured while fetching data');

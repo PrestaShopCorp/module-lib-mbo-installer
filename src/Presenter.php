@@ -7,7 +7,7 @@ use PrestaShop\PrestaShop\Core\Addon\Module\ModuleManagerBuilder;
 class Presenter
 {
     /**
-     * @return array<string, string|boolean|null>
+     * @return array<string, string|bool|null>
      */
     public function present()
     {
