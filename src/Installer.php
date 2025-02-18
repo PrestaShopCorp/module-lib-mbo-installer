@@ -2,7 +2,6 @@
 
 namespace Prestashop\ModuleLibMboInstaller;
 
-use PrestaShop\ModuleLibMboInstaller\HttpClient;
 use PrestaShop\PrestaShop\Core\Addon\Module\ModuleManagerBuilder;
 
 class Installer
