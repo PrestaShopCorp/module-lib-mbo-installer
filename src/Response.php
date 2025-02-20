@@ -44,7 +44,7 @@ class Response
      */
     public function getBody()
     {
-        return (array) json_decode($this->body, true);
+        return $this->body;
     }
 
     /**

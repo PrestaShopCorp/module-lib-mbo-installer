@@ -19,7 +19,7 @@ class HttpClient
      *
      * @throws \RuntimeException if cURL extension is not loaded
      */
-    public function __construct(string $baseUrl)
+    public function __construct($baseUrl)
     {
         if (!extension_loaded('curl')) {
             throw new \RuntimeException('cURL extension is not loaded');
@@ -57,7 +57,7 @@ class HttpClient
      *
      * @return self
      */
-    public function setHeaders(array $headers)
+    public function setHeaders($headers)
     {
         $this->headers = $headers;
 
@@ -72,7 +72,7 @@ class HttpClient
      *
      * @return self
      */
-    public function addHeader(string $name, string $value)
+    public function addHeader($name, $value)
     {
         $this->headers[] = "$name: $value";
 
@@ -86,7 +86,7 @@ class HttpClient
      *
      * @return self
      */
-    public function setOptions(array $options)
+    public function setOptions($options)
     {
         $this->options = $options + $this->options;
 
@@ -104,7 +104,7 @@ class HttpClient
      *
      * @throws \RuntimeException on cURL errors
      */
-    public function request(string $method, string $url, $data = null)
+    public function request($method, $url, $data = null)
     {
         $url = $this->baseUrl . '/' . ltrim($url, '/');
 
@@ -167,7 +167,7 @@ class HttpClient
      *
      * @return Response
      */
-    public function get(string $url, array $params = [])
+    public function get($url, $params = [])
     {
         return $this->request('GET', $url, $params);
     }
@@ -180,7 +180,7 @@ class HttpClient
      *
      * @return Response
      */
-    public function post(string $url, $data = [])
+    public function post($url, $data = [])
     {
         return $this->request('POST', $url, $data);
     }
@@ -193,7 +193,7 @@ class HttpClient
      *
      * @return Response
      */
-    public function put(string $url, $data = [])
+    public function put($url, $data = [])
     {
         return $this->request('PUT', $url, $data);
     }
@@ -206,7 +206,7 @@ class HttpClient
      *
      * @return Response
      */
-    public function delete(string $url, array $params = [])
+    public function delete($url, $params = [])
     {
         return $this->request('DELETE', $url, $params);
     }
