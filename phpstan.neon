@@ -18,5 +18,6 @@ parameters:
 		- '#Call to method install\(\) on an unknown class PrestaShop\\PrestaShop\\Core\\Module\\ModuleManager.#'
 		- '#Call to method enable\(\) on an unknown class PrestaShop\\PrestaShop\\Core\\Addon\\Module\\ModuleManager.#'
 		- '#Call to method enable\(\) on an unknown class PrestaShop\\PrestaShop\\Core\\Module\\ModuleManager.#'
-
+		- '#Property Prestashop\\ModuleLibMboInstaller\\HttpClient::\$curl has no type specified.#'
+		
 	level: max
