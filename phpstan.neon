@@ -19,6 +19,5 @@ parameters:
 		- '#Call to method enable\(\) on an unknown class PrestaShop\\PrestaShop\\Core\\Addon\\Module\\ModuleManager.#'
 		- '#Call to method enable\(\) on an unknown class PrestaShop\\PrestaShop\\Core\\Module\\ModuleManager.#'
 		- '#Property Prestashop\\ModuleLibMboInstaller\\HttpClient::\$curl has no type specified.#'
-		- '#Method Prestashop\\ModuleLibMboInstaller\\Response::getBody\(\) return type has no value type specified in iterable type array.#'
-
+		
 	level: max
