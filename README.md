@@ -1,8 +1,3 @@
-[prestashopexamplemodule.zip](https://github.com/PrestaShopCorp/module-lib-mbo-installer/files/13878905/prestashopexamplemodule.zip)
-
-**EDIT 09/01/2023**
-
-
 # PrestaShop module dependencies library
 
 The goal of this package is to help managing module dependencies.
@@ -42,9 +37,13 @@ composer require prestashop/module-lib-mbo-installer
 
 | Version | Status         | Packagist           -| Namespace    | Repo                | Docs                | PHP Version  |
 |---------|----------------|----------------------|--------------|---------------------|---------------------|--------------|
-| 1.x     | Latest         | `prestashop/module-lib-mbo-installer` | `Prestashop\ModuleLibMboInstaller` | [v1.x][lib-1-repo] | N/A                 | >=5.6   |
+| 3.x     | Latest         | `prestashop/module-lib-mbo-installer` | `Prestashop\ModuleLibMboInstaller` | [main][main-repo] | N/A                 | >=5.6   |
+| 2.x     | Unmaintained         | `prestashop/module-lib-mbo-installer` | `Prestashop\ModuleLibMboInstaller` | [v2.0.0][lib-2-repo] | N/A                 | >=7.2   |
+| 1.x     | Unmaintained         | `prestashop/module-lib-mbo-installer` | `Prestashop\ModuleLibMboInstaller` | [v1.0.0][lib-1-repo] | N/A                 | >=5.6   |
 
-[lib-1-repo]: https://github.com/PrestaShopCorp/module-lib-mbo-installer/tree/main
+[main-repo]: https://github.com/PrestaShopCorp/module-lib-mbo-installer/tree/main
+[lib-1-repo]: https://github.com/PrestaShopCorp/module-lib-mbo-installer/tree/v1.0
+[lib-2-repo]: https://github.com/PrestaShopCorp/module-lib-mbo-installer/tree/v2.0.0
 
 ## Usage
 
@@ -190,3 +189,6 @@ In the template
     </div>
 {% endfor%}
 ```
+
+The module [builtforjsexample](https://github.com/PrestaShopCorp/builtforjsexample/releases) is an example of integration of MBO installer,
+where the steps previously detailed have been applied.
